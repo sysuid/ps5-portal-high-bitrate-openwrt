@@ -61,7 +61,10 @@ jobs:
           ./scripts/feeds install -a
           printf '%s\n' 'CONFIG_ALL=n' 'CONFIG_ALL_NONSHARED=n' 'CONFIG_ALL_KMODS=n' 'CONFIG_PACKAGE_portal-bitrate=m' 'CONFIG_SIGNED_PACKAGES=y' >> .config
           make defconfig
-          make package/portal-bitrate/compile -j2 V=s
+          # This package has no compiled/link-time dependencies. Invoke its native
+          # SDK recipe directly instead of rebuilding Python/OpenSSL/LuCI feeds.
+          # Runtime dependencies remain in APK metadata and are resolved by apk.
+          make -C package/portal-bitrate TOPDIR="$PWD" compile V=s
       - name: Collect APK and provenance
         run: |
           mkdir -p apk-artifacts
