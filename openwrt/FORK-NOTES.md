@@ -30,8 +30,9 @@ or as having proven latency/throughput gains.
 The **OpenWrt One APK** GitHub Actions workflow uses the official OpenWrt
 **25.12.5 mediatek/filogic SDK** and its package machinery. It verifies the SDK
 archive SHA256 and produces an APK, BUILDINFO, SDK configuration and SHA256SUMS.
-The app is Python/scripts, so its package architecture is independent; native
-dependencies (including kmod-veth) resolve from the installed firmware's feeds.
+The payload is portable Python/scripts; this SDK stamps the native APK as
+`aarch64_cortex-a53` for OpenWrt One. Native dependencies (including kmod-veth)
+resolve from the installed firmware's feeds.
 No kernel module or firmware image is bundled or flashed.
 
 Download `portal-bitrate-openwrt-one-25.12.5-apk` from a successful Actions run.
