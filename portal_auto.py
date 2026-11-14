@@ -196,6 +196,8 @@ def run(c, runtime, active=True, seconds=None):
         threading.Thread(target=pipe_reader, args=(guard.stdout, ready, True), daemon=True).start()
         if ready.get(timeout=90) != b'GUARD_READY':
             raise RuntimeError('Recovery guardian failed before redirection')
+        # ARM/Scapy cold start must not consume the user's reconnect window.
+        started = time.monotonic()
         print('AUTO READY' if active else 'BASELINE READY: connect Portal now and check picture/controls.', flush=True)
         next_arp = next_beat = next_status = 0
         next_health = time.monotonic() + 30

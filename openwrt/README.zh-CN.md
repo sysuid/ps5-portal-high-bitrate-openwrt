@@ -2,7 +2,6 @@
 
 > 本 fork 已改为双端定向 ARP＋命名空间内核回程，支持通过 Actions 构建
 > OpenWrt One / 25.12.5 的原生 APK。先阅读 [fork 说明](FORK-NOTES.md)。
-> 下文原始“视频保持直达”“关闭命名空间转发”的描述不再适用于本 fork；
 > 当前视频经过命名空间内核，不经过 Python，主机转发与防火墙不变。
 
 面向官方 OpenWrt 的独立移植，优先供 x86/x86_64 软路由测试。不是 OpenWrt 或原作者发布的官方包。
@@ -16,9 +15,9 @@
                                 上游 Python 中继 + ARP 恢复 guardian
 ```
 
-只将 Portal → PS5 的控制/出站数据引到中继，PS5 → Portal 视频保持直达。
+用定向 ARP 将两端引到中继；Portal → PS5 控制数据经过 Python，PS5 → Portal 视频由命名空间内核转发。
 路由器主系统的 IP 转发、WAN、NAT、现有网络和防火墙配置不被改写。
-只在独立命名空间内关闭内核转发，避免内核与 Python 重复转发。
+只在独立命名空间内开启内核转发，专用 nftables 规则仅允许 PS5 → Portal 回程，避免控制报文重复转发。
 不依赖 Docker，不需要重刷固件，不会自动下载主分支源码。
 
 第一版只支持普通 Linux LAN 网桥（通常为 `br-lan`），PS5、Portal、中继在同一 IPv4 子网和二层网络。
