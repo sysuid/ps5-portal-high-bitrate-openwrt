@@ -53,6 +53,21 @@ class AutoTests(unittest.TestCase):
         with patch.object(n,'configure'),patch.object(n,'open_socket') as sock,patch.object(n,'send') as send,patch.object(a.time,'sleep'):
             self.assertEqual(a.restore_peer(self.s),[])
             self.assertEqual(send.call_count,5);sock.return_value.close.assert_called_once()
+    def test_namespace_redirects_and_restores_both_peers_without_broadcast(self):
+        with patch.object(n, 'isolated_openwrt', return_value=True):
+            for repair in (False, True):
+                frames = a.arp_frames(self.s, repair)
+                self.assertEqual(len(frames), 2)
+                for frame, peer, other in ((frames[0], 'portal', 'ps5'), (frames[1], 'ps5', 'portal')):
+                    self.assertEqual(frame[Ether].dst, self.s[peer + '_mac'])
+                    self.assertEqual(frame[ARP].pdst, self.s['config'][peer + '_ip'])
+                    self.assertEqual(frame[ARP].psrc, self.s['config'][other + '_ip'])
+                    expected = self.s[other + '_mac'] if repair else self.s['own_mac']
+                    self.assertEqual(frame[ARP].hwsrc, expected)
+                    self.assertEqual(frame[Ether].src, expected)
+            with patch.object(n, 'configure'), patch.object(n, 'open_socket'), patch.object(n, 'send') as send, patch.object(a.time, 'sleep'):
+                self.assertEqual(a.restore_peer(self.s), [])
+                self.assertEqual(send.call_count, 10)
     def test_baseline_binds_config_and_code(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td)
@@ -102,6 +117,17 @@ class AutoTests(unittest.TestCase):
 
 
 class LinuxRouteTests(unittest.TestCase):
+    def test_namespace_flag_cannot_bypass_host_forwarding_checks(self):
+        with patch.dict(n.os.environ, {'PORTAL_BITRATE_OPENWRT_NETNS': '1'}), patch.object(n, 'IFACE', 'br-lan'):
+            with self.assertRaisesRegex(RuntimeError, 'owned Linux namespace'):
+                n.health()
+
+    def test_owned_namespace_requires_enabled_return_forwarding(self):
+        with patch.object(n, 'isolated_openwrt', return_value=True), patch.object(n.sys, 'platform', 'linux'), patch.object(n.Path, 'read_text', return_value='1'), patch.object(n.subprocess, 'check_output', return_value='[{"dev":"relay0","prefsrc":"192.0.2.30"}]'), patch.object(n, 'IFACE', 'relay0'):
+            n.health()
+        with patch.object(n, 'isolated_openwrt', return_value=True), patch.object(n.sys, 'platform', 'linux'), patch.object(n.Path, 'read_text', return_value='0'):
+            with self.assertRaises(RuntimeError):
+                n.health()
     def test_gateway_rejected_without_mutation(self):
         with patch.object(n.sys,'platform','linux'),patch.object(n.Path,'read_text',return_value='0'),patch.object(n.subprocess,'check_output',return_value='[{"dev":"eth0","gateway":"192.0.2.1"}]'),patch.object(n,'IFACE','eth0'):
             with self.assertRaises(RuntimeError):n.health()

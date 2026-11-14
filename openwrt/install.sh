@@ -19,13 +19,13 @@ if [ "${1:-}" = '--remove' ]; then
 	fail 'For removal use: sh uninstall.sh'
 fi
 
-echo 'Installing distribution packages: python3 scapy ip-full kmod-veth libpcap luci rpcd'
+echo 'Installing distribution packages: python3 scapy ip-full kmod-veth libpcap luci rpcd nftables-json'
 if command -v apk >/dev/null 2>&1; then
 	apk update
-	apk add python3 scapy ip-full kmod-veth libpcap luci rpcd
+	apk add python3 scapy ip-full kmod-veth libpcap luci rpcd nftables-json
 elif command -v opkg >/dev/null 2>&1; then
 	opkg update
-	opkg install python3 scapy ip-full kmod-veth libpcap luci rpcd
+	opkg install python3 scapy ip-full kmod-veth libpcap luci rpcd nftables-json
 else
 	fail 'No supported OpenWrt package manager (opkg/apk) found.'
 fi

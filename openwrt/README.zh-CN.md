@@ -1,5 +1,10 @@
 # PS5 Portal High Bitrate：OpenWrt 安装包（实验版）
 
+> 本 fork 已改为双端定向 ARP＋命名空间内核回程，支持通过 Actions 构建
+> OpenWrt One / 25.12.5 的原生 APK。先阅读 [fork 说明](FORK-NOTES.md)。
+> 下文原始“视频保持直达”“关闭命名空间转发”的描述不再适用于本 fork；
+> 当前视频经过命名空间内核，不经过 Python，主机转发与防火墙不变。
+
 面向官方 OpenWrt 的独立移植，优先供 x86/x86_64 软路由测试。不是 OpenWrt 或原作者发布的官方包。
 保留上游码率修改逻辑，65/100/200 Mbps 是请求目标，实际画质、吞吐和延迟需要实机确认。
 

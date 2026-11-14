@@ -131,6 +131,8 @@ return view.extend({
 		}));
 		bridge.value = selectedBridge;
 		var profile = E('select', { 'class': 'cbi-input-select' }, [
+			E('option', { 'value': '35' }, '35 Mbps'),
+			E('option', { 'value': '45' }, '45 Mbps'),
 			E('option', { 'value': '65' }, '65 Mbps（建议起点）'),
 			E('option', { 'value': '100' }, '100 Mbps'),
 			E('option', { 'value': '200' }, '200 Mbps（实验）') ]);

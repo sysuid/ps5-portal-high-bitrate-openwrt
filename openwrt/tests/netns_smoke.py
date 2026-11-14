@@ -155,20 +155,31 @@ print(received)
             expected, changed = probe.mutate(fixture())
             assert changed
             assert hashlib.sha256(expected).hexdigest() in server_log.read_text()
-            # The fake PS5's video/reply must still target the Portal's actual MAC.
-            assert DEVICES['pb-portal'][1] in cmd('ip', '-n', 'pb-ps5', 'neigh', 'show', '10.77.0.20').stdout
+            # Both directions use the namespace, but only control crosses Python.
+            relay_mac = json.loads((RT / 'restore-state.json').read_text())['own_mac']
+            assert relay_mac in cmd('ip', '-n', 'pb-ps5', 'neigh', 'show', '10.77.0.20').stdout
+            assert relay_mac in cmd('ip', '-n', 'pb-portal', 'neigh', 'show', '10.77.0.10').stdout
+            rules = cmd('ip', 'netns', 'exec', 'portal-bitrate', 'nft', 'list', 'table', 'inet', 'portal_bitrate_return').stdout
+            assert '10.77.0.10' in rules and '10.77.0.20' in rules and 'policy drop' in rules
+            # Unicast poisoning must not overwrite the router's own neighbors.
+            cmd('ping', '-c', '1', '-W', '1', '10.77.0.10')
+            cmd('ping', '-c', '1', '-W', '1', '10.77.0.20')
+            for address, mac in DEVICES.values():
+                assert mac in cmd('ip', 'neigh', 'show', address, 'dev', BRIDGE).stdout
             active.send_signal(signal.SIGTERM)
             assert active.wait(timeout=60) == 0, log.read_text()
             assert DEVICES['pb-ps5'][1] in cmd('ip', '-n', 'pb-portal', 'neigh', 'show', '10.77.0.10').stdout
+            assert DEVICES['pb-portal'][1] in cmd('ip', '-n', 'pb-ps5', 'neigh', 'show', '10.77.0.20').stdout
             assert not Path('/var/run/netns/portal-bitrate').exists()
             assert forwarding.read_text().strip() == '1'
-            print('PASS: real UDP mutation/delivery; direct return path; graceful stop/ARP restore', flush=True)
+            print('PASS: UDP mutation; kernel return; host neighbors unchanged; both ARP entries restored', flush=True)
 
             active, log = start('try')
             wait_for(redirected)
             os.kill(int((RT / 'engine-pid').read_text()), signal.SIGKILL)
             assert active.wait(timeout=60) != 0
             assert DEVICES['pb-ps5'][1] in cmd('ip', '-n', 'pb-portal', 'neigh', 'show', '10.77.0.10').stdout
+            assert DEVICES['pb-portal'][1] in cmd('ip', '-n', 'pb-ps5', 'neigh', 'show', '10.77.0.20').stdout
             assert not Path('/var/run/netns/portal-bitrate').exists()
             assert not (RT / 'recovery-required').exists()
             assert forwarding.read_text().strip() == '1'

@@ -16,6 +16,22 @@ PORTAL = '192.0.2.20'
 IFACE = None
 
 
+def isolated_openwrt():
+    """Allow kernel return forwarding only inside the supervisor's owned netns."""
+    if os.environ.get('PORTAL_BITRATE_OPENWRT_NETNS') != '1':
+        return False
+    if sys.platform != 'linux' or IFACE != 'relay0':
+        raise RuntimeError('OpenWrt relay mode requires the owned Linux namespace')
+    state = json.loads(Path('/tmp/portal-bitrate/namespace.json').read_text())
+    current = Path('/proc/self/ns/net').stat()
+    handle = Path('/var/run/netns/portal-bitrate').stat()
+    identity = [current.st_dev, current.st_ino]
+    if (identity != state['handle'] or identity == state['host_handle']
+            or identity != [handle.st_dev, handle.st_ino]):
+        raise RuntimeError('Refusing OpenWrt mode outside the owned relay namespace')
+    return True
+
+
 def require_admin():
     if sys.platform == 'win32':
         win.require_windows()
@@ -51,9 +67,11 @@ def health():
                 raise RuntimeError('Both devices must be directly connected through this adapter.')
         win.forwarding_disabled(IFACE.index)
     elif sys.platform == 'linux':
+        isolated = isolated_openwrt()
         for path in ('/proc/sys/net/ipv4/ip_forward', f'/proc/sys/net/ipv4/conf/{IFACE}/forwarding'):
-            if Path(path).read_text().strip() != '0':
-                raise RuntimeError('IPv4 forwarding is enabled. No changes made.')
+            expected = '1' if isolated else '0'
+            if Path(path).read_text().strip() != expected:
+                raise RuntimeError('Unexpected IPv4 forwarding state. No changes made.')
         for ip in (PS5, PORTAL):
             rows = json.loads(subprocess.check_output(['ip', '-j', '-4', 'route', 'get', ip], text=True, timeout=2))
             if len(rows) != 1 or rows[0].get('dev') != IFACE or rows[0].get('gateway') or rows[0].get('type', 'unicast') != 'unicast' or rows[0].get('prefsrc') in (PS5, PORTAL):

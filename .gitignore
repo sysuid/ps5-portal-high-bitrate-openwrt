@@ -27,3 +27,4 @@ id_rsa*
 id_ed25519*
 *.mobileprovision
 release-assets/
+.test-deps/

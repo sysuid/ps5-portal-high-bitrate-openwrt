@@ -20,6 +20,8 @@ import subprocess
 import sys
 import time
 
+NFT_TABLE = 'portal_bitrate_return'
+
 APP = Path(__file__).resolve().parent
 if not (APP / 'portal_auto.py').exists():
     APP = APP.parent  # run from a source checkout
@@ -69,8 +71,8 @@ class Settings:
     def validate(self):
         if not re.fullmatch(r'[a-zA-Z0-9_.-]{1,15}', self.bridge):
             raise ValueError('Invalid LAN bridge name')
-        if self.profile not in ('65', '100', '200'):
-            raise ValueError('Profile must be 65, 100 or 200')
+        if self.profile not in ('35', '45', '65', '100', '200'):
+            raise ValueError('Profile must be 35, 45, 65, 100 or 200')
         if '/' not in self.address:
             raise ValueError('A free relay IP with prefix is required, e.g. 192.168.1.250/24')
         local = ipaddress.IPv4Interface(self.address)
@@ -202,11 +204,22 @@ def assert_namespace():
 
 def internal(action, args):
     assert_namespace()
+    os.environ['PORTAL_BITRATE_OPENWRT_NETNS'] = '1'
     if action == '_init':
         # All paths are namespace-scoped. No sysctl is written on the router.
         for name in ('ip_forward', f'conf/{IFACE}/forwarding',
                      'conf/all/send_redirects', f'conf/{IFACE}/send_redirects'):
-            Path('/proc/sys/net/ipv4', name).write_text('0\n')
+            Path('/proc/sys/net/ipv4', name).write_text(
+                '1\n' if name in ('ip_forward', f'conf/{IFACE}/forwarding') else '0\n')
+        settings = Settings(**read_json(RUNTIME / 'namespace.json')['settings']).validate()
+        # This subprocess runs only after assert_namespace(), never in the host.
+        # Portal->PS5 is emitted once by Python; PS5->Portal uses the kernel.
+        rules = ('table inet ' + NFT_TABLE + ' {\n'
+                 ' chain forward { type filter hook forward priority -5; policy drop;\n'
+                 f'  ip saddr {settings.ps5_ip} ip daddr {settings.portal_ip} accept\n'
+                 ' }\n}\n')
+        subprocess.run(['nft', '-f', '-'], input=rules, text=True, check=True,
+                       capture_output=True, timeout=15)
         ipv6 = Path('/proc/sys/net/ipv6/conf', IFACE, 'disable_ipv6')
         if ipv6.exists():
             ipv6.write_text('1\n')
@@ -312,7 +325,8 @@ def supervise(settings, mode, seconds=None):
             argv += ['--seconds', str(seconds)]
         if interrupted:
             return 0
-        child = subprocess.Popen(argv, start_new_session=True)
+        child = subprocess.Popen(argv, start_new_session=True,
+                                 env={**os.environ, 'PORTAL_BITRATE_OPENWRT_NETNS': '1'})
         (RUNTIME / 'engine-pid').write_text(str(child.pid))
         rc = child.wait()
         # Guardian is in a separate session; do not remove its Ethernet path early.
@@ -386,7 +400,7 @@ def main(argv=None):
     parser.add_argument('--address')
     parser.add_argument('--ps5', dest='ps5_ip')
     parser.add_argument('--portal', dest='portal_ip')
-    parser.add_argument('--profile', default='65', choices=['65', '100', '200'])
+    parser.add_argument('--profile', default='65', choices=['35', '45', '65', '100', '200'])
     parser.add_argument('--seconds', type=int)
     args = parser.parse_args(argv)
     if os.geteuid() != 0:

@@ -1,3 +1,7 @@
 *.cmd text eol=crlf
 *.py text eol=lf
 *.md text eol=lf
+*.sh text eol=lf
+*.init text eol=lf
+Makefile text eol=lf
+*.yml text eol=lf

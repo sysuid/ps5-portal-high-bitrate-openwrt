@@ -1,5 +1,16 @@
 # PS5 Portal High Bitrate
 
+## sysuid fork: OpenWrt One native APK
+
+This fork adds a dual-direction ARP relay with a namespace-local kernel return
+path, dual-peer recovery, and a native APK build using the OpenWrt 25.12.5
+mediatek/filogic SDK. LuCI management and mandatory baseline verification remain.
+See [fork changes, limitations and APK installation](openwrt/FORK-NOTES.md).
+Build/download: **Actions → OpenWrt One APK**. Portal 7.3.2 remains unverified.
+
+The older upstream documentation below describes a one-way/direct-video design;
+in this fork video returns through the namespace kernel, never through Python.
+
 ## OpenWrt port — experimental preview
 
 This version includes an independently maintained OpenWrt port for x86/x86_64 routers.

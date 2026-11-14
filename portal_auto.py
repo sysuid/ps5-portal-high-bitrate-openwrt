@@ -20,7 +20,8 @@ import portal_active_probe as probe
 import portal_auto_platform as net
 
 ROOT = Path(__file__).resolve().parent
-PROFILES = {'65': bytes.fromhex('04'), '100': bytes.fromhex('03501b0005'), '200': bytes.fromhex('00501b0005')}
+PROFILES = {'35': b'\x01', '45': b'\x06', '65': b'\x04',
+            '100': bytes.fromhex('03501b0005'), '200': bytes.fromhex('00501b0005')}
 LOG = logging.getLogger('portal-auto')
 HEARTBEAT_TIMEOUT = 30  # Allows a bounded Windows forwarding-state query.
 
@@ -63,9 +64,25 @@ def baseline_valid(c, runtime):
 
 
 def portal_arp(state, repair=False):
-    return Ether(src=state['own_mac'], dst=state['portal_mac']) / ARP(
+    source = state['ps5_mac'] if repair else state['own_mac']
+    return Ether(src=source, dst=state['portal_mac']) / ARP(
         op=2, psrc=state['config']['ps5_ip'], pdst=state['config']['portal_ip'],
         hwsrc=state['ps5_mac'] if repair else state['own_mac'], hwdst=state['portal_mac'])
+
+
+def ps5_arp(state, repair=False):
+    source = state['portal_mac'] if repair else state['own_mac']
+    return Ether(src=source, dst=state['ps5_mac']) / ARP(
+        op=2, psrc=state['config']['portal_ip'], pdst=state['config']['ps5_ip'],
+        hwsrc=source, hwdst=state['ps5_mac'])
+
+
+def arp_frames(state, repair=False):
+    # Never broadcast GARP: it can overwrite the router's own neighbor entries.
+    frames = [portal_arp(state, repair)]
+    if net.isolated_openwrt():
+        frames.append(ps5_arp(state, repair))
+    return frames
 
 
 def outbound(frame, state, active=True):
@@ -81,7 +98,8 @@ def restore_peer(state):
         net.configure(state['config'])
         sock = net.open_socket()
         for _ in range(5):
-            net.send(sock, portal_arp(state, True))
+            for frame in arp_frames(state, True):
+                net.send(sock, frame)
             time.sleep(.1)
         return []
     except Exception as exc:
@@ -176,7 +194,7 @@ def run(c, runtime, active=True, seconds=None):
                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE, **net.spawn_options())
         ready = queue.Queue()
         threading.Thread(target=pipe_reader, args=(guard.stdout, ready, True), daemon=True).start()
-        if ready.get(timeout=10) != b'GUARD_READY':
+        if ready.get(timeout=90) != b'GUARD_READY':
             raise RuntimeError('Recovery guardian failed before redirection')
         print('AUTO READY' if active else 'BASELINE READY: connect Portal now and check picture/controls.', flush=True)
         next_arp = next_beat = next_status = 0
@@ -207,8 +225,9 @@ def run(c, runtime, active=True, seconds=None):
                 threading.Thread(target=health_worker, args=(health_results,), daemon=True).start()
                 health_pending = True
             if now >= next_arp:
-                net.send(tx, portal_arp(state))
-                next_arp = now + 1
+                for arp in arp_frames(state):
+                    net.send(tx, arp)
+                next_arp = now + (.2 if net.isolated_openwrt() else 1)
             if now >= next_status:
                 atomic_json(runtime / 'status.json', {'time': utc(), 'state': 'running', 'pid': os.getpid(),
                     'guardian_pid': guard.pid, 'mode': 'active' if active else 'baseline', 'profile': c['profile'],

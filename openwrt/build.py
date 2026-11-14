@@ -9,7 +9,7 @@ import tarfile
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / 'release-assets'
-VERSION = '0.2.0-1'
+VERSION = '0.3.0-1'
 ENGINE = ['portal_auto.py', 'portal_auto_platform.py', 'portal_active_probe.py',
           'portal_capture.py', 'portal_egress_witness.py', 'portal_windows_network.py',
           'protocol.py', 'LICENSE', 'requirements.txt']
@@ -58,7 +58,7 @@ def build():
     # Dependencies use OpenWrt's actual package name "scapy", not "python3-scapy".
     control = (f'Package: portal-bitrate\nVersion: {VERSION}\nArchitecture: all\n'
                'Maintainer: Local OpenWrt port\nSection: net\nPriority: optional\n'
-               'Depends: python3, scapy, ip-full, kmod-veth, libpcap, luci, rpcd\n'
+               'Depends: python3, scapy, ip-full, kmod-veth, libpcap, luci, rpcd, nftables-json\n'
                'License: MIT\nSource: https://github.com/atameric/ps5-portal-high-bitrate\n'
                'Description: Experimental PlayStation Portal bitrate relay in an isolated network namespace\n'
                f'Installed-Size: {sum(len(v[0]) for v in data.values())}\n').encode()
