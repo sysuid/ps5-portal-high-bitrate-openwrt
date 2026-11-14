@@ -118,7 +118,7 @@ class AutoTests(unittest.TestCase):
 
 class LinuxRouteTests(unittest.TestCase):
     def test_namespace_flag_cannot_bypass_host_forwarding_checks(self):
-        with patch.dict(n.os.environ, {'PORTAL_BITRATE_OPENWRT_NETNS': '1'}), patch.object(n, 'IFACE', 'br-lan'):
+        with patch.dict(n.os.environ, {'PORTAL_BITRATE_OPENWRT_NETNS': '1'}), patch.object(n.sys, 'platform', 'linux'), patch.object(n, 'IFACE', 'br-lan'):
             with self.assertRaisesRegex(RuntimeError, 'owned Linux namespace'):
                 n.health()
 
