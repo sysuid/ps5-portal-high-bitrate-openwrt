@@ -14,7 +14,7 @@ start_service() {
 	procd_set_param stdout 1
 	procd_set_param stderr 1
 	# Upstream guardian can take 35 s; keep the veth alive through repair.
-	procd_set_param term_timeout 90
+	procd_set_param term_timeout 180
 	procd_close_instance
 }
 

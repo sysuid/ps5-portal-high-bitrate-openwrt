@@ -38,9 +38,9 @@ ENGINE_LOCK = Path('/var/run/portal-lab-capture.lock')
 SYSNET = Path('/sys/class/net')
 
 
-def command(*args, check=True):
+def command(*args, check=True, timeout=15):
     return subprocess.run([str(x) for x in args], text=True, capture_output=True,
-                          check=check, timeout=15)
+                          check=check, timeout=timeout)
 
 
 def atomic(path, value):
@@ -108,7 +108,8 @@ def exclusive():
 
 
 def ns_command(*args, check=True):
-    return command('ip', 'netns', 'exec', NS, *args, check=check)
+    # A cold Python/Scapy import on ARM+USB can exceed the ordinary ip/uci budget.
+    return command('ip', 'netns', 'exec', NS, *args, check=check, timeout=90)
 
 
 def pids():

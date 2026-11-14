@@ -66,6 +66,13 @@ class PortTests(unittest.TestCase):
                 with port.exclusive():
                     self.fail('Concurrent command entered')
 
+    def test_cold_namespace_helpers_have_a_separate_bounded_timeout(self):
+        with patch.object(port.subprocess, 'run') as run:
+            port.ns_command('python3', '_probe')
+            self.assertEqual(run.call_args.kwargs['timeout'], 90)
+            port.command('ip', 'link', 'show')
+            self.assertEqual(run.call_args.kwargs['timeout'], 15)
+
     def test_setup_isolates_forwarding_and_probes_before_ip_assignment(self):
         events = []
         def cmd(*args, **kw):

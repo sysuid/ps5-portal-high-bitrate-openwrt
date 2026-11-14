@@ -20,6 +20,9 @@ The upstream project and its MIT license are retained.
   a new baseline. Unlike the issue's workaround, do not skip verification.
 - Add 35/45 profiles alongside 65/100/200, and allow 90 seconds for guardian
   cold start on small ARM devices. Start with 65 or lower, not 200.
+- v0.3.1: allow 90 seconds for namespace Python/Scapy helpers as well; ordinary
+  ip/uci commands retain their 15-second timeout. Shutdown supervision permits
+  180 seconds so a cold recovery helper is not killed prematurely.
 
 Video now takes an extra hop through the namespace/kernel. It does **not** cross
 the Python receive loop. This fork must not be described as a direct video path

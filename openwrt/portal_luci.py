@@ -178,7 +178,7 @@ def stop_service(job_id, orphan=None):
         # Never interrupt enrollment midway through its namespace setup.
         if orphan.get('action') in ('baseline', 'trial', 'doctor'):
             os.kill(orphan['pid'], signal.SIGTERM)
-        deadline = time.monotonic() + 90
+        deadline = time.monotonic() + 180
         while alive(orphan['pid'], orphan['identity']) and time.monotonic() < deadline:
             time.sleep(.25)
         if alive(orphan['pid'], orphan['identity']):
@@ -186,7 +186,7 @@ def stop_service(job_id, orphan=None):
     run_child(job_id, [SERVICE, 'stop'])
     # procd acknowledges its stop request before the supervised process finishes.
     # Wait for the controller's lock and namespace processes before ARP repair.
-    deadline = time.monotonic() + 90
+    deadline = time.monotonic() + 180
     while time.monotonic() < deadline:
         if controller_idle() and not port.pids():
             break
