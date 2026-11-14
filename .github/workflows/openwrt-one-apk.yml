@@ -92,7 +92,7 @@ jobs:
             -v "$PWD:/src:ro" openwrt/rootfs:x86-64-25.12.5 /bin/sh -ec '
               mkdir -p /tmp/run
               apk update
-              apk add python3 scapy ip-full nftables-json ethtool iputils-ping uci
+              apk add python3 scapy libpcap ip-full nftables-json ethtool iputils-ping uci
               cp -a /src/release-assets/root/. /
               PORTAL_TEST_DISPOSABLE=1 python3 /src/openwrt/tests/netns_smoke.py
             '

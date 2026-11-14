@@ -149,6 +149,7 @@ print(received)
 
             active, log = start('try')
             wait_for(redirected)
+            before = len(server_log.read_text().splitlines())
             assert send(td / 'startup.bin') > 0
             time.sleep(.2)
             status = json.loads((RT / 'status.json').read_text())
@@ -159,6 +160,9 @@ print(received)
             expected, changed = probe.mutate(fixture())
             assert changed
             assert hashlib.sha256(expected).hexdigest() in server_log.read_text()
+            delivered = server_log.read_text().splitlines()[before:]
+            assert len(delivered) == 10, 'Control packets duplicated or lost: ' + repr(delivered)
+            assert all(x == hashlib.sha256(expected).hexdigest() for x in delivered)
             # Both directions use the namespace, but only control crosses Python.
             relay_mac = json.loads((RT / 'restore-state.json').read_text())['own_mac']
             assert relay_mac in cmd('ip', '-n', 'pb-ps5', 'neigh', 'show', '10.77.0.20').stdout
