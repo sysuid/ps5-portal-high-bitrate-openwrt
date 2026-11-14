@@ -64,7 +64,7 @@ class AutoTests(unittest.TestCase):
                     self.assertEqual(frame[ARP].psrc, self.s['config'][other + '_ip'])
                     expected = self.s[other + '_mac'] if repair else self.s['own_mac']
                     self.assertEqual(frame[ARP].hwsrc, expected)
-                    self.assertEqual(frame[Ether].src, expected)
+                    self.assertEqual(frame[Ether].src, self.s['own_mac'])
             with patch.object(n, 'configure'), patch.object(n, 'open_socket'), patch.object(n, 'send') as send, patch.object(a.time, 'sleep'):
                 self.assertEqual(a.restore_peer(self.s), [])
                 self.assertEqual(send.call_count, 10)

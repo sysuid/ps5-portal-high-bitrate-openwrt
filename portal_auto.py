@@ -64,15 +64,15 @@ def baseline_valid(c, runtime):
 
 
 def portal_arp(state, repair=False):
-    source = state['ps5_mac'] if repair else state['own_mac']
-    return Ether(src=source, dst=state['portal_mac']) / ARP(
+    return Ether(src=state['own_mac'], dst=state['portal_mac']) / ARP(
         op=2, psrc=state['config']['ps5_ip'], pdst=state['config']['portal_ip'],
         hwsrc=state['ps5_mac'] if repair else state['own_mac'], hwdst=state['portal_mac'])
 
 
 def ps5_arp(state, repair=False):
     source = state['portal_mac'] if repair else state['own_mac']
-    return Ether(src=source, dst=state['ps5_mac']) / ARP(
+    # Keep Ethernet source ours so the bridge never learns a real peer behind veth.
+    return Ether(src=state['own_mac'], dst=state['ps5_mac']) / ARP(
         op=2, psrc=state['config']['portal_ip'], pdst=state['config']['ps5_ip'],
         hwsrc=source, hwdst=state['ps5_mac'])
 
