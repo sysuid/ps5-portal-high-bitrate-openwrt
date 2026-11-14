@@ -90,6 +90,7 @@ jobs:
         run: |
           docker run --rm --privileged --name portal-netns-test \
             -v "$PWD:/src:ro" openwrt/rootfs:x86-64-25.12.5 /bin/sh -ec '
+              mkdir -p /tmp/run
               apk update
               apk add python3 scapy ip-full nftables-json ethtool iputils-ping uci
               cp -a /src/release-assets/root/. /

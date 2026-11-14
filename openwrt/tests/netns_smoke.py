@@ -17,7 +17,11 @@ RT = Path('/tmp/portal-bitrate')
 
 
 def cmd(*args, check=True, **kw):
-    return subprocess.run(args, check=check, text=True, capture_output=True, **kw)
+    result = subprocess.run(args, text=True, capture_output=True, **kw)
+    if check and result.returncode:
+        print(result.stderr, flush=True)
+        result.check_returncode()
+    return result
 
 
 def wait_for(predicate, seconds=15):
