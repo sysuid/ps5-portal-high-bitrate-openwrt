@@ -45,7 +45,7 @@ jobs:
           curl --fail --location --retry 3 "$SDK_URL/$SDK.tar.zst" -o "$RUNNER_TEMP/$SDK.tar.zst"
           curl --fail --location --retry 3 "$SDK_URL/sha256sums" -o "$RUNNER_TEMP/sha256sums"
           cd "$RUNNER_TEMP"
-          grep " $SDK.tar.zst$" sha256sums | sha256sum -c -
+          grep -F "$SDK.tar.zst" sha256sums | sha256sum -c -
           tar --zstd -xf "$SDK.tar.zst"
       - name: Stage application and package recipe
         run: |
